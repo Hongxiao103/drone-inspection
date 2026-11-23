@@ -1,0 +1,312 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="light">
+<title>Drone Inspection · How the installation works</title>
+<style>
+  :root { --bg:#f3f5e6; --ink:#17201a; --mute:#5d6a60; --line:#cfd6bf; --green:#2f9e4f; --dark:#0e1110; --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+    /* screen shapes: iPhone landscape, iPad landscape, laptop */
+    --r-phone:2.165; --r-ipad:1.439; --r-laptop:1.6;
+    --rw:min(36vw, calc((100vh - 6.8vw - 112px) / 1.087)); --lw:calc(var(--rw) * 1.5); --g:28px; --wi:calc(var(--lw) * .56); --d:calc(var(--rw) * .58); --mw:calc(var(--lw) + var(--rw) + var(--g) + 48px); }
+  * { box-sizing:border-box; }
+  html,body { margin:0; background:var(--bg); color:var(--ink); font:15px/1.45 -apple-system,"Segoe UI",system-ui,sans-serif; }
+  body { min-height:100vh; display:flex; flex-direction:column; overflow-x:hidden; }
+  header, main, footer { width:100%; max-width:var(--mw); margin-left:auto; margin-right:auto; }
+  header { display:grid; grid-template-columns:var(--lw) var(--rw); gap:0 var(--g); align-items:end; align-items:last baseline; padding:14px 24px 12px; }
+  .vh { position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); }
+  .hl { display:flex; align-items:flex-end; align-items:last baseline; } .hl + .hl { margin-top:4px; }
+  .hl .w { font:400 clamp(28px,3.3vw,60px)/1.02 Impact,Haettenschweiler,"Arial Narrow Bold",sans-serif; letter-spacing:.01em; color:var(--green); }
+  .hl p { position:relative; margin:0 0 0 1.1em; padding-left:1.1em; font-size:clamp(12.5px,1.22vw,22px); line-height:1.22; color:var(--ink); white-space:nowrap; }
+  .hl p::before { content:"•"; position:absolute; left:0; top:0; }
+  #replay { flex:none; }
+  /* top right, lined up with the phone screen: the study in three numbers, then who made it */
+  .stats { margin:0; display:flex; flex-wrap:wrap; align-items:baseline; gap:.1em .5em; font-size:clamp(11px,1.02vw,18px); color:var(--ink); }
+  .stats b { font:400 clamp(22px,2.5vw,46px)/1 Impact,Haettenschweiler,"Arial Narrow Bold",sans-serif; color:var(--green); margin-right:.18em; }
+  .stats i { font-style:normal; color:var(--mute); }
+  .who { margin:.5em 0 0; font-weight:700; font-size:clamp(14px,1.4vw,25px); line-height:1.15; }
+  .deg { margin:.25em 0 0; font-size:clamp(11px,.98vw,17px); line-height:1.3; color:var(--mute); }
+  .ghost { font:600 12px var(--mono); letter-spacing:.04em; color:var(--ink); background:none; border:1px solid var(--line); border-radius:999px; padding:6px 12px; cursor:pointer; }
+  .ghost:hover { border-color:var(--green); color:var(--green); }
+
+  main { display:grid; grid-template-columns:var(--lw) var(--rw); gap:0 var(--g); padding:2px 24px 14px; align-items:stretch; }
+  #left { position:relative; display:flex; flex-direction:column; min-width:0; } #right { display:flex; flex-direction:column; gap:10px; min-width:0; }
+  #uIpad { width:var(--wi); }
+  .cap { font:600 11px var(--mono); letter-spacing:.06em; text-transform:uppercase; color:var(--mute); margin:0 0 5px 2px; }
+  .cap b { color:var(--green); font-weight:600; }
+  .panel { position:relative; width:100%; background:var(--dark); border-radius:10px; overflow:hidden; opacity:0; transform-origin:0 0; will-change:transform; }
+  .panel video { position:absolute; inset:0; width:100%; height:100%; object-fit:contain; display:block; background:var(--dark); }
+  .panel .ph { position:absolute; inset:0; display:grid; place-items:center; text-align:center; color:#8d978f; font:13px var(--mono); padding:20px; }
+  .panel.has .ph, .panel video[poster] + .ph { display:none; }
+  #vPhone { aspect-ratio:var(--r-phone); } #vIpad { aspect-ratio:var(--r-ipad); } #vLaptop { aspect-ratio:var(--r-laptop); }
+  #slot { position:relative; flex:1; min-height:80px; }
+  /* the circle sits midway between the iPad screen and the right-hand screens */
+  #diagram { position:absolute; z-index:2; margin:0; width:var(--d); height:var(--d); left:calc(var(--wi) + (var(--lw) - var(--wi) + var(--g) - var(--d)) / 2); top:calc(41% - var(--d) / 2); }
+  #diagram svg { width:100%; height:auto; max-height:100%; }
+
+  .bar { display:flex; align-items:center; gap:12px; margin-top:6px; }
+  #play { width:40px; height:40px; flex:none; border-radius:50%; border:0; background:var(--green); color:#fff; display:grid; place-items:center; cursor:pointer; }
+  #play:disabled { background:var(--line); cursor:default; }
+  #play svg { width:18px; height:18px; }
+  #seek { flex:1; accent-color:var(--green); }
+  #time { font:12px var(--mono); color:var(--mute); min-width:86px; text-align:right; }
+  #chapters { display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; } #chapters:empty { display:none; }
+  #chapters button { font:600 11px var(--mono); color:var(--ink); background:none; border:1px solid var(--line); border-radius:999px; padding:4px 10px; cursor:pointer; }
+  #chapters button.on { background:var(--green); border-color:var(--green); color:#fff; }
+  .note { margin:4px 0 0; color:var(--mute); font-size:12.5px; }
+  .fade { transition:opacity .6s .9s; } body.intro .fade { opacity:0; pointer-events:none; transition-delay:0s; }
+
+  /* opening: the poster (once it is supplied), then the visitor walks up to the booth */
+  #splash { position:fixed; inset:0; z-index:20; background:var(--bg); transition:opacity .7s; }
+  #splash img { width:100%; height:100%; object-fit:contain; display:block; }
+  #splash.out { opacity:0; pointer-events:none; }
+  #skip { position:fixed; right:20px; bottom:20px; z-index:21; background:var(--bg); }
+  body:not(.intro) #skip { display:none; }
+  #scene { position:fixed; left:0; top:0; z-index:5; width:900px; height:420px; transform-origin:0 0; opacity:0; transition:opacity .6s; pointer-events:none; }
+  #scene.docked { position:absolute; z-index:3; }   /* above the diagram, so the speech bubble is never hidden behind it */
+  /* one very long booth, fading out at both ends */
+  .booth { position:absolute; left:-520px; right:-520px; top:290px; height:122px; background:#d6dcc4; transition:left .9s, right .9s;
+    -webkit-mask-image:linear-gradient(90deg,transparent,#000 24%,#000 76%,transparent); mask-image:linear-gradient(90deg,transparent,#000 24%,#000 76%,transparent); }
+  #scene.compact .booth { -webkit-mask-image:none; mask-image:none; }
+  #person { position:absolute; left:214px; top:70px; width:172px; height:330px; z-index:2; }
+  #person img { position:absolute; inset:0; width:100%; height:100%; opacity:0; }
+  .dev { position:absolute; background:#1b211d; border-radius:6px; padding:4px; }
+  .dev i { display:block; width:100%; height:100%; border-radius:3px; background:linear-gradient(135deg,#3fbf68,#1f7a3c); }
+  .dev span { position:absolute; left:50%; top:-22px; transform:translateX(-50%); font:600 12px var(--mono); color:var(--mute); white-space:nowrap; }
+  #dPhone { left:497px; top:256px; width:62px; height:34px; border-radius:7px; }
+  #dIpad { left:590px; top:206px; width:112px; height:84px; }
+  #dLaptop { left:726px; top:187px; width:150px; height:96px; }
+  #dLaptop::after { content:""; position:absolute; left:-12px; right:-12px; top:100%; height:7px; background:#1b211d; border-radius:0 0 6px 6px; }
+
+  /* what the visitor says out loud, shown next to the figure at the moments it is said in the recording */
+  #say { position:absolute; left:552px; top:156px; transform:translateY(-100%); max-width:440px; width:max-content; padding:9px 16px; background:#fff; color:var(--ink); border:3px solid var(--ink); border-radius:20px; font:600 21px/1.22 -apple-system,"Segoe UI",system-ui,sans-serif; opacity:0; transition:opacity .25s; z-index:3; }   /* right of the head and above the device labels: it must not cover the face or the labels */
+  #say::before { content:""; position:absolute; left:-22px; bottom:14px; border:11px solid transparent; border-right-color:var(--ink); }
+  #say::after { content:""; position:absolute; left:-15px; bottom:16px; border:9px solid transparent; border-right-color:#fff; }
+  #say.on { opacity:1; } #say small { display:none; font:600 15px var(--mono); letter-spacing:.06em; color:var(--green); margin-bottom:2px; }
+  /* closing card, once the recording has played through */
+  #end { position:fixed; inset:0; z-index:15; display:none; place-items:center; padding:24px; background:rgba(243,245,230,.93); }
+  #end.on { display:grid; }
+  #end .card { max-width:min(1040px,94vw); text-align:left; }
+  #end h2 { margin:0 0 .3em; font:400 clamp(28px,3.6vw,54px)/1.02 Impact,Haettenschweiler,"Arial Narrow Bold",sans-serif; color:var(--green); letter-spacing:.01em; }
+  #end p { margin:.4em 0 0; font-size:clamp(13px,1.1vw,16px); line-height:1.42; }
+  #end .cols { display:grid; grid-template-columns:repeat(3,1fr); gap:22px; margin-top:1.1em; } #end .cols > div { border-top:3px solid var(--green); padding-top:8px; }
+  #end h3 { margin:0; font:600 12px var(--mono); letter-spacing:.08em; text-transform:uppercase; color:var(--green); }
+  #end .cols b { color:var(--green); }
+  @media (max-width:820px) { #end .cols { grid-template-columns:1fr; gap:12px; } }
+  #end .row { display:flex; flex-wrap:wrap; gap:10px; margin-top:1.3em; }
+  #end .go { font:600 13px var(--mono); letter-spacing:.04em; color:#fff; background:var(--green); border:0; border-radius:999px; padding:10px 18px; cursor:pointer; }
+  #end .by { margin-top:1.4em; color:var(--mute); font-size:13px; }
+
+  @media (max-width:820px) {
+    :root { --mw:none; --lw:1fr; --rw:1fr; --wi:100%; --d:240px; } main { grid-template-columns:1fr; gap:14px; }
+    #slot { aspect-ratio:2/1; flex:none; } #diagram { position:static; margin:12px auto; } .hl { flex-wrap:wrap; } .hl p { white-space:normal; margin-left:0; } .hl p br { display:none; }
+    header, main { padding-left:16px; padding-right:16px; } header { grid-template-columns:1fr; gap:12px; }
+  }
+  @media (prefers-reduced-motion:reduce) { * { transition-duration:.01s !important; } }
+</style>
+</head>
+<body class="intro">
+<div id="splash" class="out"><img id="cover" alt="Drone Inspection poster"></div>
+<button class="ghost" id="skip">Skip intro</button>
+
+<header>
+  <div>
+  <h1 class="vh">Drone Inspection</h1>
+  <div class="hl"><span class="w" aria-hidden="true">Drone</span><p>This page demonstrates how visitors will interact with the<br> installation and the experience they will have during the grad show.</p></div>
+  <div class="hl"><span class="w" aria-hidden="true">Inspection</span><p>All interfaces will undergo further iterations and<br> aesthetic upgrades before the final showcase.</p></div>
+  </div>
+  <div>
+    <p class="stats"><span><b>166</b>evidence records</span><i>·</i><span><b>9</b>guidelines</span><i>·</i><span><b>2</b>phases</span></p>
+    <p class="who">Hongxiao He</p>
+    <p class="deg">Master of Interaction Design and Electronic Arts · Research Capstone</p>
+  </div>
+</header>
+
+<main>
+  <div id="left">
+    <div class="unit" id="uIpad">
+      <p class="cap fade"><b>iPad</b> · the drone's camera</p>
+      <section class="panel" id="vIpad"><video muted playsinline preload="auto" src="videos/ipad.mp4" poster="assets/shot-ipad.png"></video><div class="ph">iPad recording goes here</div></section>
+    </div>
+    <div id="slot"></div>
+    <figure id="diagram" class="fade">
+        <svg viewBox="0 0 240 240" role="img" aria-label="The visitor moves the joysticks and speaks to the phone. The phone sends commands to the laptop, which runs the flight. The laptop sends the camera view to the iPad. The visitor watches the iPad and the laptop.">
+          <defs><marker id="ah" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0l10 5-10 5z" fill="#17201a"/></marker>
+            <marker id="ag" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0l10 5-10 5z" fill="#2f9e4f"/></marker></defs>
+          <circle cx="120" cy="120" r="117" fill="#eaeed9" stroke="#cfd6bf"/>
+          <g fill="none" stroke="#17201a" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <!-- visitor (left), phone (top), laptop (right), iPad (bottom) -->
+            <circle cx="40" cy="108" r="7"/><path d="M28 132c0-9 5-14 12-14s12 5 12 14"/>
+            <rect x="104" y="13" width="32" height="44" rx="5" fill="#f3f5e6"/>
+            <rect x="176" y="104" width="46" height="27" rx="3" fill="#f3f5e6"/><path d="M169 136h60"/>
+            <rect x="100" y="186" width="40" height="30" rx="4" fill="#f3f5e6"/>
+            <path d="M50.6 89.1A76 76 0 0 1 89.1 50.6" marker-end="url(#ah)"/>
+            <path d="M150.9 50.6A76 76 0 0 1 189.4 89.1" marker-end="url(#ah)"/>
+            <path d="M189.4 150.9A76 76 0 0 1 150.9 189.4" marker-end="url(#ah)"/>
+          </g>
+          <g fill="none" stroke="#2f9e4f" stroke-width="1.5" stroke-dasharray="4 4" stroke-linecap="round">
+            <path d="M89.1 189.4A76 76 0 0 1 50.6 150.9" marker-end="url(#ag)"/>
+            <path d="M166 118H62" marker-end="url(#ag)"/>
+          </g>
+          <g font-family="ui-monospace,Menlo,Consolas,monospace" font-size="8.5" fill="#17201a" text-anchor="middle">
+            <text x="40" y="145" font-weight="600">Visitor</text><text x="120" y="38" font-weight="600">Phone</text>
+            <text x="199" y="120.5" font-weight="600">Laptop</text><text x="120" y="204" font-weight="600">iPad</text>
+            <g fill="#5d6a60"><text x="84" y="80">joystick</text><text x="84" y="90">+ voice</text><text x="158" y="84">commands</text><text x="158" y="160">camera</text><text x="158" y="170">view</text></g>
+            <g fill="#2f9e4f"><text x="84" y="166">watches</text><text x="118" y="111">watches</text></g>
+          </g>
+        </svg>
+      </figure>
+    <div class="fade">
+      <div class="bar">
+    <button id="play" aria-label="Play" disabled><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path id="playIcon" d="M7 4l14 8-14 8z"/></svg></button>
+    <input id="seek" type="range" min="0" max="1000" value="0" aria-label="Position in the recording" disabled>
+    <span id="time">0:00 / 0:00</span>
+      <button class="ghost" id="replay">Restart</button>
+  </div>
+  <div id="chapters"></div>
+    </div>
+  </div>
+  <div id="right">
+    <div class="unit">
+      <p class="cap fade"><b>Phone</b> · the controller</p>
+      <section class="panel" id="vPhone"><video muted playsinline preload="auto" src="videos/phone.mp4" poster="assets/shot-phone.png"></video><div class="ph">Phone recording goes here</div></section>
+    </div>
+    <div class="unit">
+      <p class="cap fade"><b>Laptop</b> · the whole scene</p>
+      <section class="panel" id="vLaptop"><video muted playsinline preload="auto" src="videos/laptop.mp4" poster="assets/shot-laptop.png"></video><div class="ph">Laptop recording goes here</div></section>
+    </div>
+  </div>
+</main>
+
+
+
+<div id="end" role="dialog" aria-label="The research behind the installation"><div class="card">
+  <h2>The research behind it.</h2>
+  <p>My thesis asks how an AI assistant should support a drone operator who gives spoken requests <b>after take-off</b>.</p>
+  <div class="cols">
+    <div><h3>Framework</h3><p>4 ways to say a task (single or complex, clear or described target) × 3 ways to operate (on site, remote, confined space), each read through five kinds of interaction support: grounding, planning, approval, feedback, recovery.</p></div>
+    <div><h3>Findings</h3><p><b>843</b> records → <b>66</b> papers → <b>166</b> evidence records → <b>9</b> guidelines → <b>8</b> lo-fi screens. The same request needs different support depending on whether the operator can see the drone, whether space restricts it, and whether the task was interrupted.</p></div>
+    <div><h3>In this installation</h3><p>The four moments of the thesis scenario become one playable inspection: say what to inspect, let the drone act and watch, change the task mid-flight (“Unable to ascend” → tilt the camera), review the result. It demonstrates the logic; it does not test it.</p></div>
+  </div>
+  <div class="row"><button class="go" id="again">Watch again</button><button class="ghost" id="againIntro">Replay the intro</button></div>
+</div></div>
+
+<div id="scene" aria-hidden="true">
+  <div class="booth"></div>
+  <div id="say"><small>VOICE</small><span></span></div>
+  <div class="dev" id="dPhone"><i></i><span>Phone</span></div>
+  <div class="dev" id="dIpad"><i></i><span>iPad</span></div>
+  <div class="dev" id="dLaptop"><i></i><span>Laptop</span></div>
+  <div id="person"><img src="assets/p1.png" alt=""><img src="assets/p2.png" alt=""><img src="assets/p3.png" alt=""><img src="assets/p4.png" alt=""><img src="assets/p5.png" alt=""><img src="assets/p6.png" alt=""></div>
+</div>
+
+<script>
+// ---- settings to fill in once the recordings are in ----
+// OFFSET: the second in each recording at which "Start" is tapped on the phone (the three are lined up on that moment)
+// The three files in videos/ were cut from the screen recordings so that they already start together (1 s before Start)
+// and were sped up 1.6x (about 116 s from Start to the report), so every offset is 0. END stops playback on the mission report (after it the visitor pressed Restart).
+const OFFSET = { phone: 0, ipad: 0, laptop: 0 }, END = 115.8;
+// CHAPTERS: [label, seconds after Start]
+const CHAPTERS = [['Fly in',0.6],['Joystick',8.1],['Voice',26.9],['Joystick + Voice',40],['Confined space',83.8],['Unable to ascend',105.6],['Report',114.5]];   // read off the laptop recording, to about a second
+// SAID: what the visitor says, [from, to, words], in seconds of the (1.6x) recordings. Read off the laptop recording, where the
+// sentence the phone heard is printed; only the moments that could be read there are listed.
+const SAID = [[29.3, 33.3, 'Take a photo of that crack between the two upper windows from 2.5 to 4 m'], [59.4, 61.6, 'Photo'], [71.4, 73.8, 'Continue']];
+// COVER: the poster shown first. Leave the file out and the page starts with the walk-up.
+const COVER = 'assets/cover.png';
+
+const $ = s => document.querySelector(s), wait = ms => new Promise(r => setTimeout(r, ms));
+const scene = $('#scene'), person = $('#person'), frames = [...person.children], W = 900, H = 420;
+const PAIRS = [['#vPhone', '#dPhone', 'phone'], ['#vIpad', '#dIpad', 'ipad'], ['#vLaptop', '#dLaptop', 'laptop']];
+const pose = n => frames.forEach((im, i) => (im.style.opacity = i === n - 1 ? 1 : 0));
+const put = (x, y, s, anim) => { scene.style.transition = `opacity .6s${anim ? ', transform .9s cubic-bezier(.6,0,.2,1)' : ''}`; scene.style.transform = `translate(${x}px,${y}px) scale(${s})`; };
+const big = () => { const s = Math.min(innerWidth * 0.86 / W, innerHeight * 0.62 / H); return [(innerWidth - W * s) / 2, (innerHeight - H * s) / 2 + 10, s]; };
+const CROP = 246; // design px of empty floor left of the visitor that the small view leaves out
+function small(local) { const r = $('#slot').getBoundingClientRect(), s = Math.min(r.height / 350, r.width / 660); return [(local ? 0 : r.left) - CROP * s, (local ? 0 : r.top) + r.height - 412 * s, s]; }
+function boothFit(on) { const b = $('.booth'); if (!on) { b.style.left = b.style.right = b.style.width = ''; return; } const r = $('#slot').getBoundingClientRect(); b.style.left = CROP + 'px'; b.style.right = 'auto'; b.style.width = r.width / small(true)[2] + 'px'; }
+let run = 0, docked = false, hasCover = false;
+
+function resetScene() {
+  docked = false; boothFit(false); scene.classList.remove('docked', 'compact'); document.body.appendChild(scene);
+  person.style.transition = 'none'; person.style.transform = 'none'; pose(1); $('#dPhone').style.opacity = 1;
+  PAIRS.forEach(([p]) => { const el = $(p); el.style.transition = 'none'; el.style.opacity = 0; });
+  put(...big(), false);
+}
+function dockNow() { // the scene lives inside its slot from here on, so it follows the layout
+  boothFit(true); scene.classList.add('docked', 'compact'); $('#slot').appendChild(scene); put(...small(true), false); docked = true;
+}
+function flyOut(anim) { // each recording grows out of its own device
+  PAIRS.forEach(([p, d], i) => {
+    const el = $(p);
+    if (!anim) { el.style.transition = 'none'; el.style.transform = 'none'; el.style.opacity = 1; return; }
+    const a = el.getBoundingClientRect(), b = $(d).getBoundingClientRect();
+    el.style.transition = 'none'; el.style.transform = `translate(${b.left - a.left}px,${b.top - a.top}px) scale(${b.width / a.width},${b.height / a.height})`; el.style.opacity = 0;
+    el.getBoundingClientRect();
+    setTimeout(() => { el.style.transition = 'transform .9s cubic-bezier(.2,.8,.2,1), opacity .35s'; el.style.transform = 'none'; el.style.opacity = 1; }, 60 + i * 160);
+  });
+}
+function finish(anim) {
+  pose(6); $('#dPhone').style.opacity = 0; person.style.transition = 'none'; person.style.transform = 'translateX(150px)'; scene.style.opacity = 1;
+  $('#splash').classList.add('out'); dockNow(); flyOut(anim); document.body.classList.remove('intro');
+  setTimeout(() => play(true), anim ? 1500 : 0);
+}
+async function intro(withCover) {
+  const id = ++run, live = () => id === run;
+  document.body.classList.add('intro'); pauseAll(); seekTo(0); resetScene(); scene.style.opacity = 0;
+  if (withCover && hasCover) { $('#splash').classList.remove('out'); await wait(1600); if (!live()) return; $('#splash').classList.add('out'); await wait(500); if (!live()) return; }
+  scene.style.opacity = 1; await wait(800); if (!live()) return;
+  // walk cycle: stride, passing (knee up), stride, passing; then stop, reach, hold the phone
+  person.style.transition = 'transform 2s linear'; person.style.transform = 'translateX(150px)';
+  const steps = [2, 3, 4, 3, 2, 3, 4, 3, 2, 3];
+  for (const s of steps) { pose(s); await wait(200); if (!live()) return; }
+  pose(1); await wait(250); if (!live()) return;
+  pose(5); await wait(700); if (!live()) return;
+  $('#dPhone').style.opacity = 0; pose(6); await wait(900); if (!live()) return;
+  boothFit(true); scene.classList.add('compact'); put(...small(false), true); await wait(950); if (!live()) return;
+  finish(true);
+}
+$('#skip').onclick = () => { run++; finish(false); };
+$('#replay').onclick = () => intro(false);
+addEventListener('resize', () => { if (docked) { boothFit(true); put(...small(true), false); } else put(...big(), false); });
+
+// ---- three recordings, one clock ----
+const vids = Object.fromEntries(PAIRS.map(([p, , k]) => [k, $(p + ' video')]));
+const ready = k => vids[k].readyState >= 1 && isFinite(vids[k].duration);
+const keys = () => Object.keys(vids).filter(ready);
+let playing = false, seeking = false;
+const length = () => Math.min(END, ...keys().map(k => vids[k].duration - OFFSET[k]));
+const now = () => { const k = keys()[0]; return k ? vids[k].currentTime - OFFSET[k] : 0; };
+const fmt = t => `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, '0')}`;
+function seekTo(t) { keys().forEach(k => (vids[k].currentTime = Math.max(0, t + OFFSET[k]))); ui(); }
+function pauseAll() { playing = false; Object.values(vids).forEach(v => v.pause()); ui(); }
+function play(auto) { if (!keys().length) return; if (now() >= length() - 0.2) seekTo(0); playing = true; keys().forEach(k => vids[k].play().catch(() => { if (auto) pauseAll(); })); ui(); }
+function ui() {
+  const has = keys().length > 0, t = has ? Math.max(0, now()) : 0, len = has ? length() : 0;
+  $('#play').disabled = $('#seek').disabled = !has;
+  $('#playIcon').setAttribute('d', playing ? 'M6 4h4v16H6zM14 4h4v16h-4z' : 'M7 4l14 8-14 8z'); $('#play').setAttribute('aria-label', playing ? 'Pause' : 'Play');
+  if (!seeking) $('#seek').value = len ? Math.round(t / len * 1000) : 0;
+  $('#time').textContent = `${fmt(t)} / ${fmt(len)}`;
+  { const b = has && docked ? SAID.find(x => t >= x[0] && t < x[1]) : null, el = $('#say'); if (b) el.lastElementChild.textContent = '\u201C' + b[2] + '\u201D'; el.classList.toggle('on', !!b); }
+  $('#end').classList.toggle('on', has && docked && !playing && len > 0 && t >= len - 0.3);
+  let cur = -1; CHAPTERS.forEach((c, i) => { if (t >= c[1] - 0.05) cur = i; });
+  [...$('#chapters').children].forEach((b, i) => b.classList.toggle('on', i === cur));
+}
+$('#play').onclick = () => (playing ? pauseAll() : play());
+$('#again').onclick = () => { seekTo(0); play(); };
+$('#againIntro').onclick = () => { seekTo(0); intro(false); };
+$('#seek').oninput = () => { seeking = true; seekTo($('#seek').value / 1000 * length()); };
+$('#seek').onchange = () => { seeking = false; };
+$('#chapters').innerHTML = CHAPTERS.map(c => `<button>${c[0]}</button>`).join('');
+[...$('#chapters').children].forEach((b, i) => (b.onclick = () => { seekTo(CHAPTERS[i][1]); play(); }));
+for (const [p, , k] of PAIRS) { vids[k].addEventListener('loadedmetadata', () => { $(p).classList.add('has'); seekTo(0); }); }
+setInterval(() => { // the first recording is the clock; the others are nudged back if they wander
+  const ks = keys(); if (!ks.length) return; const t = now();
+  if (playing) { ks.slice(1).forEach(k => { if (Math.abs(vids[k].currentTime - OFFSET[k] - t) > 0.12) vids[k].currentTime = t + OFFSET[k]; }); if (t >= length() - 0.05) pauseAll(); }
+  ui();
+}, 250);
+
+const cover = new Promise(r => { const im = $('#cover'); im.onload = () => r(true); im.onerror = () => r(false); im.src = COVER; });
+Promise.all([cover.then(ok => (hasCover = ok)), ...frames.map(im => im.decode ? im.decode().catch(() => {}) : 0)]).then(() => intro(true));
+</script>
+</body>
+</html>
